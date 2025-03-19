@@ -1,9 +1,8 @@
 package com.epam.training.gen.ai.service;
 
-
 import com.microsoft.semantickernel.Kernel;
 import com.microsoft.semantickernel.orchestration.InvocationContext;
-import com.microsoft.semantickernel.services.chatcompletion.AuthorRole;
+
 import com.microsoft.semantickernel.services.chatcompletion.ChatCompletionService;
 import com.microsoft.semantickernel.services.chatcompletion.ChatHistory;
 import com.microsoft.semantickernel.services.chatcompletion.ChatMessageContent;
@@ -27,18 +26,30 @@ public class ChatBotService {
     private final ChatHistory chatHistory;
     private final InvocationContext invocationContext;
 
-    public ChatBotService(Kernel kernel, ChatCompletionService chatCompletionService, ChatHistory chatHistory, InvocationContext invocationContext) {
+    public ChatBotService(Kernel kernel,
+                          ChatCompletionService chatCompletionService,
+                          ChatHistory chatHistory,
+                          InvocationContext invocationContext) {
         this.kernel = kernel;
         this.chatCompletionService = chatCompletionService;
         this.chatHistory = chatHistory;
         this.invocationContext = invocationContext;
     }
 
-
     public String getChatBotResponse(String input) {
-        chatHistory.addUserMessage(input);
+        // Add system message only once
+        if (chatHistory.getMessages().isEmpty()) {
+            chatHistory.addSystemMessage(
+                    "You have access to a function called TimePlugin.getCurrentTime. " +
+                            "If the user asks for the current time or date, ALWAYS call this function " +
+                            "Do NOT answer the time yourself."
+            );
+            chatHistory.addSystemMessage("Include light humor in responses while keeping them informative.");
+        }
 
         log.info("Received input: {}", input);
+        chatHistory.addUserMessage(input);
+
 
         try {
             List<ChatMessageContent<?>> results = chatCompletionService
@@ -47,8 +58,6 @@ public class ChatBotService {
 
             Optional.ofNullable(results)
                     .orElseGet(Collections::emptyList)
-                    .stream()
-                    .filter(result -> result != null && result.getAuthorRole() == AuthorRole.ASSISTANT)
                     .forEach(result -> {
                         Optional.ofNullable(result.getContent())
                                 .ifPresent(content -> {
