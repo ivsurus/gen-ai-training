@@ -1,0 +1,3 @@
+client-openai-key: ${API_KEY}
+client-openai-endpoint: ${URL}
+client-openai-deployment-name: ${MODEL}
